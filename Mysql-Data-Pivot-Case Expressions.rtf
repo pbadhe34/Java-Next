@@ -1,0 +1,215 @@
+{\rtf1\ansi\ansicpg1252\deff0\deflang1033{\fonttbl{\f0\fnil\fcharset0 Arial;}}
+{\colortbl ;\red68\green68\blue68;\red23\green70\blue136;\red133\green153\blue0;\red88\green110\blue117;\red38\green139\blue210;\red203\green75\blue22;\red42\green161\blue152;\red255\green255\blue255;\red0\green0\blue255;\red0\green71\blue171;\red0\green255\blue255;\red209\green218\blue231;}
+{\*\generator Msftedit 5.41.21.2510;}\viewkind4\uc1\pard\sa200\sl276\slmult1\lang9\fs24\par
+\par
+\b Working with Pivot Queries using Case Expressions in MySQL\par
+\pard\cbpat8\sb100\sa100\cf1\lang1033\b0 MySQL does not have\~\cf2 PIVOT\cf1\~function, so in order to rotate data from rows into columns you will have to use a\~\cf2 CASE\cf1\~expression along with an aggregate function.\par
+\pard\sa200\sl276\slmult1\cf0\lang9 Create sample data\par
+\pard\tx916\tx1832\tx2748\tx3664\tx4580\tx5496\tx6412\tx7328\tx8244\tx9160\tx10076\tx10992\tx11908\tx12824\tx13740\tx14656\cf3\lang1033 create\cf4  \cf3 table\cf4  \cf5 products\cf4\par
+(\par
+  \cf5 prod_id\cf4  \cf6 int\cf4  \cf3 not\cf4  \cf3 null\cf4 ,\par
+  \cf5 prod_name\cf4  \cf6 varchar\cf4 (\cf7\b 50\cf4\b0 ) \cf3 not\cf4  \cf3 null\cf4 ,\par
+  \cf3 primary\cf4  \cf3 key\cf4  (\cf5 prod_id\cf4 )\par
+);  \par
+\par
+\cf3 insert\cf4  \cf3 into\cf4  \cf5 products\cf4  (\cf5 prod_id\cf4 , \cf5 prod\cf4 _\cf5 name\cf4 )\par
+\cf3 values\cf4  (\cf7\b 1\cf4\b0 , \cf7 'Shoes'\cf4 ), (\cf7\b 2\cf4\b0 , \cf7 'Pants'\cf4 ), (\cf7\b 3\cf4\b0 , \cf7 'Shirt'\cf4 );\par
+\par
+\cf3 create\cf4  \cf3 table\cf4  \cf5 reps\cf4\par
+(\par
+  \cf5 rep_id\cf4  \cf6 int\cf4  \cf3 not\cf4  \cf3 null\cf4 ,\par
+  \cf5 rep_name\cf4  \cf6 varchar\cf4 (\cf7\b 50\cf4\b0 ) \cf3 not\cf4  \cf3 null\cf4 ,\par
+  \cf3 primary\cf4  \cf3 key\cf4  (\cf5 rep_id\cf4 )\par
+);\par
+\par
+\cf3 insert\cf4  \cf3 into\cf4  \cf5 reps\cf4  (\cf5 rep_id\cf4 , \cf5 rep_name\cf4 )\par
+\cf3 values\cf4  (\cf7\b 1\cf4\b0 , \cf7 'John'\cf4 ), (\cf7\b 2\cf4\b0 , \cf7 'Sally'\cf4 ), (\cf7\b 3\cf4\b0 , \cf7 'Joe'\cf4 ), (\cf7\b 4\cf4\b0 , \cf7 'Bob'\cf4 );\par
+\par
+\cf3 create\cf4  \cf3 table\cf4  \cf5 sales\cf4\par
+(\par
+  \cf5 prod_id\cf4  \cf6 INT\cf4  \cf3 NOT\cf4  \cf3 NULL\cf4 ,\par
+  \cf5 rep_id\cf4  \cf6 INT\cf4  \cf3 NOT\cf4  \cf3 NULL\cf4 ,\par
+  \cf5 sale_date\cf4  \cf5 datetime\cf4  \cf3 not\cf4  \cf3 null\cf4 ,\par
+  \cf5 quantity\cf4  \cf6 int\cf4  \cf3 not\cf4  \cf3 null\cf4 ,\par
+  \cf3 PRIMARY\cf4  \cf3 KEY\cf4  (\cf5 prod_id\cf4 , \cf5 rep_id\cf4 , \cf5 sale_date\cf4 ),\par
+  \cf3 FOREIGN\cf4  \cf3 KEY\cf4  (\cf5 prod_id\cf4 ) \cf3 REFERENCES\cf4  \cf5 products\cf4 (\cf5 prod_id\cf4 ),\par
+  \cf3 FOREIGN\cf4  \cf3 KEY\cf4  (\cf5 rep_id\cf4 ) \cf3 REFERENCES\cf4  \cf5 reps\cf4 (\cf5 rep_id\cf4 )\par
+);\par
+\par
+\cf3 insert\cf4  \cf3 into\cf4  \cf5 sales\cf4  (\cf5 prod_id\cf4 , \cf5 rep_id\cf4 , \cf5 sale_date\cf4 , \cf5 quantity\cf4 )\par
+\cf3 values\cf4  \par
+  (\cf7\b 1\cf4\b0 , \cf7\b 1\cf4\b0 , \cf7 '2013-05-16'\cf4 , \cf7\b 20\cf4\b0 ),\par
+  (\cf7\b 1\cf4\b0 , \cf7\b 1\cf4\b0 , \cf7 '2013-06-19'\cf4 , \cf7\b 2\cf4\b0 ),\par
+  (\cf7\b 2\cf4\b0 , \cf7\b 1\cf4\b0 , \cf7 '2013-07-03'\cf4 , \cf7\b 5\cf4\b0 ),\par
+  (\cf7\b 3\cf4\b0 , \cf7\b 1\cf4\b0 , \cf7 '2013-08-22'\cf4 , \cf7\b 27\cf4\b0 ),\par
+  (\cf7\b 3\cf4\b0 , \cf7\b 2\cf4\b0 , \cf7 '2013-06-27'\cf4 , \cf7\b 500\cf4\b0 ),\par
+  (\cf7\b 3\cf4\b0 , \cf7\b 2\cf4\b0 , \cf7 '2013-01-07'\cf4 , \cf7\b 150\cf4\b0 ),\par
+  (\cf7\b 1\cf4\b0 , \cf7\b 2\cf4\b0 , \cf7 '2013-05-01'\cf4 , \cf7\b 89\cf4\b0 ),\par
+  (\cf7\b 2\cf4\b0 , \cf7\b 2\cf4\b0 , \cf7 '2013-02-14'\cf4 , \cf7\b 23\cf4\b0 ),\par
+  (\cf7\b 1\cf4\b0 , \cf7\b 3\cf4\b0 , \cf7 '2013-01-29'\cf4 , \cf7\b 19\cf4\b0 ),\par
+  (\cf7\b 3\cf4\b0 , \cf7\b 3\cf4\b0 , \cf7 '2013-03-06'\cf4 , \cf7\b 13\cf4\b0 ),\par
+  (\cf7\b 2\cf4\b0 , \cf7\b 3\cf4\b0 , \cf7 '2013-04-18'\cf4 , \cf7\b 1\cf4\b0 ),\par
+  (\cf7\b 2\cf4\b0 , \cf7\b 3\cf4\b0 , \cf7 '2013-08-03'\cf4 , \cf7\b 78\cf4\b0 ),\par
+\pard\sa200\sl276\slmult1   (\cf7\b 2\cf4\b0 , \cf7\b 3\cf4\b0 , \cf7 '2013-07-22'\cf4 , \cf7\b 69\cf4\b0 );\par
+\cf0\lang9 ****************\par
+\cf1\lang1033 easily query the rep, sales, and product data by joining the tables\par
+\par
+\pard\tx916\tx1832\tx2748\tx3664\tx4580\tx5496\tx6412\tx7328\tx8244\tx9160\tx10076\tx10992\tx11908\tx12824\tx13740\tx14656\cf3 select\cf4  \par
+  \cf5 r\cf4 .\cf5 rep_name\cf4 ,\par
+  \cf5 p\cf4 .\cf5 prod_name\cf4 ,\par
+  \cf5 s\cf4 .\cf5 sale_date\cf4 ,\par
+  \cf5 s\cf4 .\cf5 quantity\cf4\par
+\cf3 from\cf4  \cf5 reps\cf4  \cf5 r\cf4\par
+\cf3 inner\cf4  \cf3 join\cf4  \cf5 sales\cf4  \cf5 s\cf4\par
+  \cf3 on\cf4  \cf5 r\cf4 .\cf5 rep_id\cf4  = \cf5 s\cf4 .\cf5 rep_id\cf4\par
+\cf3 inner\cf4  \cf3 join\cf4  \cf5 products\cf4  \cf5 p\cf4\par
+  \cf3 on\cf4  \cf5 s\cf4 .\cf5 prod_id\cf4  = \cf5 p\cf4 .\cf5 prod_id\cf4\par
+\pard\sa200\sl276\slmult1\cf0\lang9\par
+\par
+\pard\cbpat8\sb100\sa100\cf1\lang1033 This will give us the data in the format:\par
+\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx723\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1618\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3344\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl\cf8\b REP_NAME\cell PROD_NAME\cell SALE_DATE\cell QUANTITY\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx723\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1618\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3344\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl\cf1\b0 John\cell Shoes\cell May, 16 2013 00:00:00+0000\cell 20\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx723\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1618\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3344\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl John\cell Shoes\cell June, 19 2013 00:00:00+0000\cell 2\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx723\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1618\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3344\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl John\cell Pants\cell July, 03 2013 00:00:00+0000\cell 5\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx723\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1618\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3344\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl John\cell Shirt\cell August, 22 2013 00:00:00+0000\cell 27\cell\row\pard\sa200\sl276\slmult1\cf0\lang9\par
+\par
+\pard\cbpat8\sb100\sa100\cf1\lang1033 But what if we want to see the reps in separate rows with the total number of products sold in each column. \par
+\pard\sa200\sl276\slmult1 This is where we need to implement the missing\~\cf2 PIVOT\cf1\~function, so we\rquote ll use the aggregate function\~\cf2 SUM\cf1\~with conditional logic instead\par
+\par
+\pard\tx916\tx1832\tx2748\tx3664\tx4580\tx5496\tx6412\tx7328\tx8244\tx9160\tx10076\tx10992\tx11908\tx12824\tx13740\tx14656\cf3 select\cf4  \par
+  \cf5 r\cf4 .\cf5 rep_name\cf4 ,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 p\cf4 .\cf5 prod_name\cf4  = \cf7 'Shoes'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  \cf5 Shoes\cf4 ,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 p\cf4 .\cf5 prod_name\cf4  = \cf7 'Pants'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  \cf5 Pants\cf4 ,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 p\cf4 .\cf5 prod_name\cf4  = \cf7 'Shirt'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  \cf5 Shirt\cf4\par
+\cf3 from\cf4  \cf5 reps\cf4  \cf5 r\cf4\par
+\cf3 inner\cf4  \cf3 join\cf4  \cf5 sales\cf4  \cf5 s\cf4\par
+  \cf3 on\cf4  \cf5 r\cf4 .\cf5 rep_id\cf4  = \cf5 s\cf4 .\cf5 rep_id\cf4\par
+\cf3 inner\cf4  \cf3 join\cf4  \cf5 products\cf4  \cf5 p\cf4\par
+  \cf3 on\cf4  \cf5 s\cf4 .\cf5 prod_id\cf4  = \cf5 p\cf4 .\cf5 prod_id\cf4\par
+\pard\sa200\sl276\slmult1\cf3 group\cf4  \cf3 by\cf4  \cf5 r\cf4 .\cf5 rep_name\cf4 ;\par
+\par
+\pard\cbpat8\sb100\sa100\cf1 The conditional logic of the\~\cf2 CASE\cf1\~expression works hand in hand with the aggregate function \par
+to only get a total of the\~\cf2 prod_name\cf1\~that you want in each column. \par
+Since we have 3 products, then you\rquote d write 3\~\cf2 sum(case...\cf1\~expressions for each column.\~\par
+\~This query will give a result of:\par
+\pard\sa200\sl276\slmult1\cf0\lang9   \lang1033\par
+\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1261\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2245\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3209\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl\cf8\b REP_NAME\cell SHOES\cell PANTS\cell SHIRT\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1261\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2245\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3209\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl\cf1\b0 Joe\cell 19\cell 148\cell 13\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1261\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2245\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3209\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl John\cell 22\cell 5\cell 27\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1261\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2245\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3209\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl Sally\cell 89\cell 23\cell 650\cell\row\pard\sa200\sl276\slmult1\cf0\lang9\par
+\par
+\cf1\lang1033 This could easily be rewritten to show the reps in each column and the products in the rows\par
+\par
+\pard\tx916\tx1832\tx2748\tx3664\tx4580\tx5496\tx6412\tx7328\tx8244\tx9160\tx10076\tx10992\tx11908\tx12824\tx13740\tx14656\cf3 select\cf4  \par
+  \cf5 p\cf4 .\cf5 prod_name\cf4 ,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 r\cf4 .\cf5 rep_name\cf4  = \cf7 'John'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  \cf5 John\cf4 ,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 r\cf4 .\cf5 rep_name\cf4  = \cf7 'Sally'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  \cf5 Sally\cf4 ,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 r\cf4 .\cf5 rep_name\cf4  = \cf7 'Joe'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  \cf5 Joe\cf4 ,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 r\cf4 .\cf5 rep_name\cf4  = \cf7 'Bob'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  \cf5 Bob\cf4\par
+\cf3 from\cf4  \cf5 products\cf4  \cf5 p\cf4\par
+\cf3 inner\cf4  \cf3 join\cf4  \cf5 sales\cf4  \cf5 s\cf4\par
+  \cf3 on\cf4  \cf5 p\cf4 .\cf5 prod_id\cf4  = \cf5 s\cf4 .\cf5 prod_id\cf4\par
+\cf3 inner\cf4  \cf3 join\cf4  \cf5 reps\cf4  \cf5 r\cf4\par
+  \cf3 on\cf4  \cf5 s\cf4 .\cf5 rep_id\cf4  = \cf5 r\cf4 .\cf5 rep_id\cf4\par
+\pard\sa200\sl276\slmult1\cf3 group\cf4  \cf3 by\cf4  \cf5 p\cf4 .\cf5 prod_name\cf4 ;\par
+\par
+\pard\cf1 And now the data is\~{\field{\*\fldinst{HYPERLINK "http://sqlfiddle.com/" \\\\l "!9/cbad7/16/0" }}{\fldrslt{\cf10 reversed}}}\cf1\f0\fs24 :\par
+\par
+\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1226\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1977\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2806\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3438\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl\cf8\b PROD_NAME\cell JOHN\cell SALLY\cell JOE\cell BOB\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1226\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1977\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2806\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3438\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl\cf1\b0 Pants\cell 5\cell 23\cell 148\cell 0\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1226\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1977\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2806\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3438\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl Shirt\cell 27\cell 650\cell 13\cell 0\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1226\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1977\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2806\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3438\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl Shoes\cell 22\cell 89\cell 19\cell 0\cell\row\pard\sa200\sl276\slmult1\cf0\lang9\par
+\pard\cbpat8\sb100\sa100\cf1\lang1033 As you can see this is a fairly straightforward and easy way to convert rows into columns when you have a limited number of values. \par
+We only had 3 products and 4 reps, so we didn\rquote t have a lot of code to write. T\par
+hings get a bit more complicated when we have an unknown number of columns to transform. \par
+If you aren\rquote t going to know the values ahead of time, then you will need to look at using a\~prepared statement\~along with dynamic SQL.\par
+When using a prepared statement, you will write a sql string that will then be executed by the server.  .\par
+Let\rquote s set up a dynamic query using the data above. You need to report the total quantity of items sold by each rep for each month/year combination.\par
+ Again, this is easy if you only had a few dates, you would write the query:\par
+\pard\sa200\sl276\slmult1\cf0\lang9\par
+\pard\tx916\tx1832\tx2748\tx3664\tx4580\tx5496\tx6412\tx7328\tx8244\tx9160\tx10076\tx10992\tx11908\tx12824\tx13740\tx14656\cf3\lang1033 select\cf4  \par
+  \cf5 r\cf4 .\cf5 rep_name\cf4 ,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 Date_format\cf4 (\cf5 s\cf4 .\cf5 sale_date\cf4 , \cf7 '%Y-%M'\cf4 )= \cf7 '2013-January'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  `\cf7\b 2013\cf4\b0 -\cf5 January\cf4 `,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 Date_format\cf4 (\cf5 s\cf4 .\cf5 sale_date\cf4 , \cf7 '%Y-%M'\cf4 )= \cf7 '2013-February'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  `\cf7\b 2013\cf4\b0 -\cf5 February\cf4 `,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 Date_format\cf4 (\cf5 s\cf4 .\cf5 sale_date\cf4 , \cf7 '%Y-%M'\cf4 )= \cf7 '2013-March'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  `\cf7\b 2013\cf4\b0 -\cf5 March\cf4 `,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 Date_format\cf4 (\cf5 s\cf4 .\cf5 sale_date\cf4 , \cf7 '%Y-%M'\cf4 )= \cf7 '2013-April'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  `\cf7\b 2013\cf4\b0 -\cf5 April\cf4 `,\par
+  \cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 Date_format\cf4 (\cf5 s\cf4 .\cf5 sale_date\cf4 , \cf7 '%Y-%M'\cf4 )= \cf7 '2013-May'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 as\cf4  `\cf7\b 2013\cf4\b0 -\cf5 May\cf4 `\par
+\cf3 from\cf4  \cf5 reps\cf4  \cf5 r\cf4\par
+\cf3 inner\cf4  \cf3 join\cf4  \cf5 sales\cf4  \cf5 s\cf4\par
+  \cf3 on\cf4  \cf5 r\cf4 .\cf5 rep_id\cf4  = \cf5 s\cf4 .\cf5 rep_id\cf4\par
+\cf3 inner\cf4  \cf3 join\cf4  \cf5 products\cf4  \cf5 p\cf4\par
+  \cf3 on\cf4  \cf5 s\cf4 .\cf5 prod_id\cf4  = \cf5 p\cf4 .\cf5 prod_id\cf4\par
+\cf3 group\cf4  \cf3 by\cf4  \cf5 r\cf4 .\cf5 rep_name\cf4 ;\par
+\pard\sa200\sl276\slmult1\cf0\lang9\par
+\pard\cf1\lang1033 Output :  get the\~{\field{\*\fldinst{HYPERLINK "http://sqlfiddle.com/" \\\\l "!9/cbad7/20/0" }}{\fldrslt{\cf10 result}}}\cf1\f0\fs24 :\par
+\par
+\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx554\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1344\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2195\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2893\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3530\clvertalc\clcbpat2\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl\cf8\b REP_NAME\cell 2013-JANUARY\cell 2013-FEBRUARY\cell 2013-MARCH\cell 2013-APRIL\cell 2013-MAY\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx554\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1344\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2195\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2893\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3530\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl\cf1\b0 Joe\cell 19\cell 0\cell 13\cell 1\cell 0\cell\row\trowd\trgaph15\trleft-83\trpaddl15\trpaddr15\trpaddfl3\trpaddfr3
+\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx554\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx1344\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2195\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx2893\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx3530\clvertalc\clcbpat12\clbrdrl\brdrw15\brdrs\brdrcf8\clbrdrt\brdrw15\brdrs\brdrcf8\clbrdrr\brdrw15\brdrs\brdrcf8\clbrdrb\brdrw15\brdrs\brdrcf8 \cellx4103\pard\intbl John\cell 0\cell 0\cell 0\cell 0\cell 20\cell\row\pard\sa200\sl276\slmult1\cf0\lang9\par
+\par
+\pard\nowidctlpar\sa200\cf1\lang1033 But what happens if you don\rquote t know the dates ahead of time, or you want to pass in certain parameters to filter the dates and make the report flexible.\par
+This is where dynamic SQL is needed. In order to create the sql string to execute, you\rquote ll first need to get a full list of the dates from your\~\cf2 sales\cf1\~table.  \par
+\pard\sa200\sl276\slmult1\cf0\lang9\par
+\pard\tx916\tx1832\tx2748\tx3664\tx4580\tx5496\tx6412\tx7328\tx8244\tx9160\tx10076\tx10992\tx11908\tx12824\tx13740\tx14656\cf3\lang1033 SET\cf4  @\cf3 sql\cf4  = \cf3 NULL\cf4 ;\par
+\cf3 SELECT\cf4\par
+  \cf5 GROUP_CONCAT\cf4 (\cf3 DISTINCT\cf4\par
+    \cf5 CONCAT\cf4 (\par
+      \cf7 'sum(case when Date_format(s.sale_date, ''%Y-%M'') = '''\cf4 ,\par
+      \cf5 dt\cf4 ,\par
+      \cf7 ''' then s.quantity else 0 end) AS `'\cf4 ,\par
+      \cf5 dt\cf4 , \cf7 '`'\cf4\par
+    )\par
+  ) \cf3 INTO\cf4  @\cf3 sql\cf4\par
+\cf3 from\cf4\par
+(\par
+  \cf3 select\cf4  \cf5 Date_format\cf4 (\cf5 s\cf4 .\cf5 sale_date\cf4 , \cf7 '%Y-%M'\cf4 ) \cf3 as\cf4  \cf5 dt\cf4\par
+  \cf3 from\cf4  \cf5 sales\cf4  \cf5 s\cf4\par
+  \cf3 order\cf4  \cf3 by\cf4  \cf5 s\cf4 .\cf5 sale_date\cf4\par
+) \cf5 d\cf4 ;\par
+\par
+\pard\sa200\sl276\slmult1\cf3 select\cf4  @\cf3 sql\cf4 ;\par
+\par
+\cf1 This code creates a full list of all the dates inside of the\~\cf2 CASE\cf1\~expression and the aggregate function\par
+\par
+\pard\tx916\tx1832\tx2748\tx3664\tx4580\tx5496\tx6412\tx7328\tx8244\tx9160\tx10076\tx10992\tx11908\tx12824\tx13740\tx14656\cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 Date_format\cf4 (\cf5 s\cf4 .\cf5 sale_date\cf4 , \cf7 '%Y-%M'\cf4 ) = \cf7 '2013-January'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 AS\cf4  `\cf7\b 2013\cf4\b0 -\cf5 January\cf4 `,\par
+\cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 Date_format\cf4 (\cf5 s\cf4 .\cf5 sale_date\cf4 , \cf7 '%Y-%M'\cf4 ) = \cf7 '2013-February'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 AS\cf4  `\cf7\b 2013\cf4\b0 -\cf5 February\cf4 `,\par
+\cf3 sum\cf4 (\cf3 case\cf4  \cf3 when\cf4  \cf5 Date_format\cf4 (\cf5 s\cf4 .\cf5 sale_date\cf4 , \cf7 '%Y-%M'\cf4 ) = \cf7 '2013-March'\cf4  \cf3 then\cf4  \cf5 s\cf4 .\cf5 quantity\cf4  \cf3 else\cf4  \cf7\b 0\cf4\b0  \cf3 end\cf4 ) \cf3 AS\cf4  `\cf7\b 2013\cf4\b0 -\cf5 March\cf4 `,\par
+\pard\sa200\sl276\slmult1 ...\par
+\par
+\cf1 The full code using the prepared statement will be\par
+\par
+\pard\tx916\tx1832\tx2748\tx3664\tx4580\tx5496\tx6412\tx7328\tx8244\tx9160\tx10076\tx10992\tx11908\tx12824\tx13740\tx14656\cf3 SET\cf4  @\cf3 sql\cf4  = \cf3 NULL\cf4 ;\par
+\cf3 SELECT\cf4\par
+  \cf5 GROUP_CONCAT\cf4 (\cf3 DISTINCT\cf4\par
+    \cf5 CONCAT\cf4 (\par
+      \cf7 'sum(case when Date_format(s.sale_date, ''%Y-%M'') = '''\cf4 ,\par
+      \cf5 dt\cf4 ,\par
+      \cf7 ''' then s.quantity else 0 end) AS `'\cf4 ,\par
+      \cf5 dt\cf4 , \cf7 '`'\cf4\par
+    )\par
+  ) \cf3 INTO\cf4  @\cf3 sql\cf4\par
+\cf3 from\cf4\par
+(\par
+  \cf3 select\cf4  \cf5 Date_format\cf4 (\cf5 s\cf4 .\cf5 sale_date\cf4 , \cf7 '%Y-%M'\cf4 ) \cf3 as\cf4  \cf5 dt\cf4\par
+  \cf3 from\cf4  \cf5 sales\cf4  \cf5 s\cf4\par
+  \cf3 order\cf4  \cf3 by\cf4  \cf5 s\cf4 .\cf5 sale_date\cf4\par
+) \cf5 d\cf4 ;\par
+\par
+\cf3 SET\cf4  @\cf3 sql\cf4  \par
+  = \cf5 CONCAT\cf4 (\cf7 'SELECT r.rep_name, '\cf4 , @\cf3 sql\cf4 , \cf7 ' \par
+            from reps r\par
+            inner join sales s\par
+              on r.rep_id = s.rep_id\par
+            inner join products p\par
+              on s.prod_id = p.prod_id\par
+            group by r.rep_name;'\cf4 );\par
+\par
+\cf3 PREPARE\cf4  \cf5 stmt\cf4  \cf3 FROM\cf4  @\cf3 sql\cf4 ;\par
+\cf3 EXECUTE\cf4  \cf5 stmt\cf4 ;\par
+\pard\sa200\sl276\slmult1\cf3 DEALLOCATE\cf4  \cf3 PREPARE\cf4  \cf5 stmt\cf4 ;\cf0\lang9\par
+}
+ 
